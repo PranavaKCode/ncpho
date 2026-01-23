@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NCPHO Contest Platform</title>
+    
+    <!-- MathJax for rendering Physics Equations -->
+    <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Desmos Graphing Calculator API -->
+    <script src="https://www.desmos.com/api/v1.11/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+
+    <style>
+        :root {
+            --primary: #0f3460;
+            --accent: #e94560;
+            --light: #f5f5f5;
+            --dark: #1a1a2e;
+            --success: #27ae60;
+            --warning: #f39c12;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* --- STICKY TOP BAR --- */
+        .top-bar {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .timer-box {
+            font-weight: bold;
+            font-size: 1.2em;
+            background: rgba(0,0,0,0.3);
+            padding: 5px 15px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .timer-warning {
+            background-color: #c0392b !important;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        .constants-btn {
+            background-color: var(--accent);
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+        .constants-btn:hover { background-color: #c0354e; }
+
+        /* --- CONTAINER --- */
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-radius: 8px;
+        }
+
+        h1, h2, h3 { color: var(--primary); }
+        
+        /* --- WELCOME SCREEN --- */
+        #welcomeScreen { text-align: center; padding-top: 50px; }
+        .welcome-box {
+            background: #eef2f5;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: left;
+            margin: 20px 0;
+            border-left: 5px solid var(--primary);
+        }
+        .password-section {
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* --- PROBLEM STYLES --- */
+        .problem-card {
+            background: #fff;
+            border: 1px solid #e1e1e1;
+            border-left: 5px solid var(--primary);
+            border-radius: 5px;
+            padding: 25px;
+            margin-bottom: 30px;
+            transition: transform 0.2s;
+        }
+        .problem-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .problem-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: var(--dark);
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        /* MCQ Options */
+        .options-grid {
+            display: grid;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .option-label {
+            display: flex;
+            align-items: flex-start;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            transition: background 0.2s;
+        }
+        .option-label:hover { background: #e8f0fe; }
+        .option-label input { margin-right: 10px; margin-top: 5px; }
+
+        /* --- INPUTS & BUTTONS --- */
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button.submit-btn {
+            background-color: var(--success);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        button.submit-btn:hover { background-color: #219150; }
+
+        /* --- ANTI CHEAT UI --- */
+        .status-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 5px;
+            background: var(--success);
+            z-index: 2000;
+            transition: background-color 0.3s;
+        }
+        .cheat-detected { background: #e74c3c !important; }
+
+        #securityConsole {
+            position: fixed;
+            left: 10px; bottom: 10px;
+            width: 250px;
+            height: 200px;
+            background-color: #1e1e1e;
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 11px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            z-index: 1500;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+        }
+        .console-header {
+            background: #333; color: white; padding: 5px 10px;
+            font-weight: bold; display: flex; justify-content: space-between;
+            cursor: pointer;
+        }
+        #consoleOutput {
+            flex-grow: 1; overflow-y: auto; padding: 10px;
+            display: flex; flex-direction: column-reverse;
+        }
+        .log-warn { color: #ff4444; }
+
+        /* --- CALCULATOR --- */
+        #calcToggle {
+            position: fixed; bottom: 30px; right: 30px; z-index: 2000;
+            width: 60px; height: 60px;
+            border-radius: 50%; background: var(--primary);
+            color: white; border: none; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: none; align-items: center; justify-content: center;
+        }
+        #calculatorPopup {
+            position: fixed; top: 15%; left: 15%; z-index: 2100;
+            background: white; border: 1px solid #aaa;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none; width: 600px; height: 400px;
+            resize: both; overflow: hidden;
+        }
+        .calc-header {
+            background: var(--primary); color: white; padding: 10px;
+            cursor: move; display: flex; justify-content: space-between;
+        }
+        #calculator { width: 100%; height: calc(100% - 40px); }
+
+        .attribution {
+            text-align: center; margin-top: 40px; color: #777; font-size: 0.9em;
+        }
+        
+        /* Mobile adjustment */
+        @media (max-width: 700px) {
+            #securityConsole { display: none !important; }
+            #calculatorPopup { width: 95% !important; left: 2.5% !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="status-overlay" id="focusBar"></div>
+
+    <!-- WELCOME SCREEN -->
+    <div class="container" id="welcomeScreen">
+        <h1 style="color: var(--primary); font-size: 2.5em;">NCPHO Contest 2026</h1>
+        <p>North Carolina Physics Olympiad</p>
+        
+        <div class="welcome-box">
+            <h3>Instructions</h3>
+            <ul>
+                <li><strong>Duration:</strong> 75 Minutes. The test will auto-submit when time expires.</li>
+                <li><strong>Content:</strong> 25 Multiple Choice Questions.</li>
+                <li><strong>Rules:</strong>
+                    <ul>
+                        <li>No external resources allowed.</li>
+                        <li><strong>Anti-Cheat Active:</strong> Switching tabs or leaving the window is logged.</li>
+                        <li>A graphing calculator is provided inside the platform.</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <div class="password-section">
+            <label>Enter Access Password:</label>
+            <input type="password" id="passwordInput" placeholder="Password...">
+            <button class="submit-btn" onclick="checkPassword()">BEGIN CONTEST</button>
+            <p id="errorMsg" style="color:red; display:none; margin-top:10px;">Incorrect Password</p>
+        </div>
+        
+        <div class="attribution">Platform created by Pranava Kumar</div>
+    </div>
+
+    <!-- MAIN TEST UI -->
+    <div id="testUI" style="display: none;">
+        
+        <!-- Sticky Top Bar -->
+        <div class="top-bar">
+            <div><strong>NCPHO 2026</strong></div>
+            <div class="timer-box" id="timerDisplay">75:00</div>
+            <a href="ncphoConstants.pdf" target="_blank" class="constants-btn">📄 Constant Sheet</a>
+        </div>
+
+        <div class="container">
+            <!-- Formspree Endpoint -->
+            <form action="https://formspree.io/f/myzopqgk" method="POST" id="quizForm">
+                
+                <div class="problem-card" style="border-left-color: #333;">
+                    <h3>Student Information</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <label>Full Name</label>
+                            <input type="text" name="Full_Name" required>
+                        </div>
+                        <div>
+                            <label>Email Address</label>
+                            <input type="email" name="Email" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 1 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 1: F=ma 2011 P1</div>
+                    <p>A problem writer writes questions at a constant rate of 20 Questions/hour except for an 8 hour break. The average speed was 12 Questions/Hour. How many questions were written?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q1" value="A"> A. ~300</label>
+                        <label class="option-label"><input type="radio" name="Q1" value="B"> B. ~270</label>
+                        <label class="option-label"><input type="radio" name="Q1" value="C"> C. ~250</label>
+                        <label class="option-label"><input type="radio" name="Q1" value="D"> D. ~240</label>
+                        <label class="option-label"><input type="radio" name="Q1" value="E"> E. ~200</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 2 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 2: Uniformly Accelerating Car</div>
+                    <p>A car starts from rest and accelerates uniformly at \(3.0\,\text{m s}^{-2}\). How far does the car travel in the first \(6.0\,\text{s}\)?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q2" value="A"> A. \(27\,\text{m}\)</label>
+                        <label class="option-label"><input type="radio" name="Q2" value="B"> B. \(36\,\text{m}\)</label>
+                        <label class="option-label"><input type="radio" name="Q2" value="C"> C. \(54\,\text{m}\)</label>
+                        <label class="option-label"><input type="radio" name="Q2" value="D"> D. \(108\,\text{m}\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 3 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 3: Chain Rule</div>
+                    <p>A particle moves along a straight line with an acceleration that depends on position, defined as \( a(x) = 6x + 7 \). When the particle is at position \(x = 6\,\mathrm{m}\), its speed is \(7\,\mathrm{m\,s^{-1}}\). What is the particle's speed when it reaches position \(x = 9\,\mathrm{m}\)?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q3" value="A"> A. \(17\,\text{m s}^{-1}\)</label>
+                        <label class="option-label"><input type="radio" name="Q3" value="B"> B. \(18\,\text{m s}^{-1}\)</label>
+                        <label class="option-label"><input type="radio" name="Q3" value="C"> C. \(19\,\text{m s}^{-1}\)</label>
+                        <label class="option-label"><input type="radio" name="Q3" value="D"> D. \(20\,\text{m s}^{-1}\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 4 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 4: Vertically Thrown Ball</div>
+                    <p>A ball is thrown vertically upward with an initial speed of \(14\,\text{m s}^{-1}\). Take the acceleration due to gravity to be \(g = 9.8\,\text{m s}^{-2}\) downward. What is the maximum height reached by the ball above the point of release?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q4" value="A"> A. \(5.0\,\text{m}\)</label>
+                        <label class="option-label"><input type="radio" name="Q4" value="B"> B. \(7.0\,\text{m}\)</label>
+                        <label class="option-label"><input type="radio" name="Q4" value="C"> C. \(10.0\,\text{m}\)</label>
+                        <label class="option-label"><input type="radio" name="Q4" value="D"> D. \(14.0\,\text{m}\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 5 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 5: One-Dimensional Elastic Collision</div>
+                    <p>A ball of mass \(m\) moving with speed \(v_0\) collides head-on elastically with a stationary ball of mass \(2m\) on a frictionless surface. After the collision, what is the speed of the lighter ball (\(m\))?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q5" value="A"> A. \(\displaystyle \frac{v_0}{3}\)</label>
+                        <label class="option-label"><input type="radio" name="Q5" value="B"> B. \(\displaystyle -\frac{v_0}{3}\)</label>
+                        <label class="option-label"><input type="radio" name="Q5" value="C"> C. \(\displaystyle \frac{2v_0}{3}\)</label>
+                        <label class="option-label"><input type="radio" name="Q5" value="D"> D. \(\displaystyle -\frac{2v_0}{3}\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 6 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 6: A Falling Box</div>
+                    <p>A crate weighing 100kg is dropped from the back of a plane traveling at \(v\) m/s at an altitude of 1km. Glassware inside the box can only handle landing on the ground at a speed of at most 200m/s. Ignoring air resistance, what is the minimum speed that the plane can be moving for the glassware to break?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q6" value="A"> A. 0 m/s</label>
+                        <label class="option-label"><input type="radio" name="Q6" value="B"> B. 143 m/s</label>
+                        <label class="option-label"><input type="radio" name="Q6" value="C"> C. 146 m/s</label>
+                        <label class="option-label"><input type="radio" name="Q6" value="D"> D. 174 m/s</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 7 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 7: Bouncy Ball Stack Problem</div>
+                    <p>A large bouncy ball is dropped and bounces up to a height \(h\). If the ball is dropped again the same way with a much smaller bouncy ball placed on top, how high will the small ball bounce? Neglect the size of the balls compared to \(h\) and neglect all dissipative energy losses.</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q7" value="A"> A. \(2h\)</label>
+                        <label class="option-label"><input type="radio" name="Q7" value="B"> B. \(3h\)</label>
+                        <label class="option-label"><input type="radio" name="Q7" value="C"> C. \(4h\)</label>
+                        <label class="option-label"><input type="radio" name="Q7" value="D"> D. \(8h\)</label>
+                        <label class="option-label"><input type="radio" name="Q7" value="E"> E. \(9h\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 8 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 8: DVAT equations</div>
+                    <p>Dr. Wheat wants his students to use his trusty DVAT equations. A student's dorm is distance directly 120m away from his office, with the student's room at a height of 20m above the ground, with Dr. Wheat's office being 70m above the ground. Dr. Wheat can throw his airplane so it ignores gravity and accelerates at \(2.4m/s^2\) in a perfectly straight line, ignoring air resistance, how long does it take for his paper airplane to get to the student's dorm?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q8" value="A"> A. 9.12s</label>
+                        <label class="option-label"><input type="radio" name="Q8" value="B"> B. 10.0s</label>
+                        <label class="option-label"><input type="radio" name="Q8" value="C"> C. 11.0s</label>
+                        <label class="option-label"><input type="radio" name="Q8" value="D"> D. 54.2s</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 9 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 9: A Falling Beam</div>
+                    <p>A uniform beam of length 1m is initially at rest and then falls horizontally a distance of 5m onto a hook on the end of a table. The beam swings down and around to the underside of the table. Ignoring air resistance, approximately how long does the beam take to hit the underside of the table from its initial state?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q9" value="A"> A. 1.20s</label>
+                        <label class="option-label"><input type="radio" name="Q9" value="B"> B. 1.45s</label>
+                        <label class="option-label"><input type="radio" name="Q9" value="C"> C. 1.95s</label>
+                        <label class="option-label"><input type="radio" name="Q9" value="D"> D. 2.20s</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 10 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 10: Oscillation of Spring with Unequal Masses</div>
+                    <p>A horizontal spring with spring constant \(k\) has two masses, \(m\) and \(2m\), attached to its ends. The spring is ideal (massless) and the system is on a frictionless surface. The system is displaced slightly from equilibrium and released. What is the period of oscillation of the system?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q10" value="A"> A. \(\displaystyle 2\pi \sqrt{\frac{m}{k}}\)</label>
+                        <label class="option-label"><input type="radio" name="Q10" value="B"> B. \(\displaystyle 2\pi \sqrt{\frac{2m}{k}}\)</label>
+                        <label class="option-label"><input type="radio" name="Q10" value="C"> C. \(\displaystyle 2\pi \sqrt{\frac{2}{3}\frac{m}{k}}\)</label>
+                        <label class="option-label"><input type="radio" name="Q10" value="D"> D. \(\displaystyle 2\pi \sqrt{\frac{3}{2}\frac{m}{k}}\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 11 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 11: Moment of Inertia</div>
+                    <p>A disk-shaped galaxy of radius \(R\) has a mass density that scales inversely as the distance from the center. If the total mass is \(M\), what is the galaxy's moment of inertia about the axis perpendicular to the plane of the disk passing through its center?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q11" value="A"> A. \(\dfrac{1}{3}MR^2\)</label>
+                        <label class="option-label"><input type="radio" name="Q11" value="B"> B. \(\dfrac{1}{4}MR^2\)</label>
+                        <label class="option-label"><input type="radio" name="Q11" value="C"> C. \(\dfrac{1}{5}MR^2\)</label>
+                        <label class="option-label"><input type="radio" name="Q11" value="D"> D. \(\dfrac{2}{3}MR^2\)</label>
+                        <label class="option-label"><input type="radio" name="Q11" value="E"> E. \(\dfrac{3}{4}MR^2\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 12 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 12: Projectile Motion to a Balcony</div>
+                    <p>I want to throw my bags weighing \(50\,\text{kg}\) altogether in one throw onto the balcony a distance of \(5\) meters away and \(3\) meters above me. What angle should I throw my belongings at, given that I throw them with a velocity of \(6.7\,\text{m/s}\)? (Round to the nearest tenth of a degree.)</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q12" value="A"> A. \(40.3^\circ\)</label>
+                        <label class="option-label"><input type="radio" name="Q12" value="B"> B. \(54.9^\circ\)</label>
+                        <label class="option-label"><input type="radio" name="Q12" value="C"> C. \(53.4^\circ\)</label>
+                        <label class="option-label"><input type="radio" name="Q12" value="D"> D. \(61.2^\circ\)</label>
+                        <label class="option-label"><input type="radio" name="Q12" value="E"> E. Not Possible</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 13 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 13: Bouncy Balls</div>
+                    <p>A student has a special physics demonstration ball that has a coefficient of restitution of 0.9. The student throws the ball towards the ground 0.50m below their hand at a 45 degree angle, making the ball move at a speed of 5.0m/s. The ball bounces off the ground and bounces off another wall that is perpendicular to the ground. Rounded to the nearest hundredth of a meter and ignoring air resistance, at what distance could the wall have been from the student such that the ball is able to bounce perfectly back into their hand?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q13" value="A"> A. 0.67m</label>
+                        <label class="option-label"><input type="radio" name="Q13" value="B"> B. 1.17m</label>
+                        <label class="option-label"><input type="radio" name="Q13" value="C"> C. 1.30m</label>
+                        <label class="option-label"><input type="radio" name="Q13" value="D"> D. 1.42m</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 14 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 14: Super Spinning</div>
+                    <p>A special yo-yo is formed by two uniform wooden spheres of density \(925\,\text{kg m}^{-3}\) and radius \(5.75\,\text{cm}\) connected by a massless thin rod of radius \(1.25\,\text{cm}\), and attached to a string of length \(1.25\,\text{m}\). The yoyo is dropped and oscillates between its starting position and the fully dropped position. Find the full period of oscillation.</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q14" value="A"> A. \(2.347\,\text{s}\)</label>
+                        <label class="option-label"><input type="radio" name="Q14" value="B"> B. \(3.106\,\text{s}\)</label>
+                        <label class="option-label"><input type="radio" name="Q14" value="C"> C. \(0.767\,\text{s}\)</label>
+                        <label class="option-label"><input type="radio" name="Q14" value="D"> D. \(1.553\,\text{s}\)</label>
+                        <label class="option-label"><input type="radio" name="Q14" value="E"> E. \(4.694\,\text{s}\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 15 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 15: Colliding Tennis Ball</div>
+                    <p>A tennis ball of mass 50g is heading directly towards a player's racket with a velocity of 20m/s. The player then swings their racket such that it is moving with a constant velocity of 15m/s and the plane of the racket is perpendicular to the balls velocity at the moment of impact. Assuming this collision is perfectly elastic, what is the balls velocity immediately after being hit by the racket?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q15" value="A"> A. 25m/s</label>
+                        <label class="option-label"><input type="radio" name="Q15" value="B"> B. 27.5m/s</label>
+                        <label class="option-label"><input type="radio" name="Q15" value="C"> C. 35m/s</label>
+                        <label class="option-label"><input type="radio" name="Q15" value="D"> D. 50m/s</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 16 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 16: Loop-de-Loop Cart Problem</div>
+                    <p>A circular loop-de-loop of radius \(R\) is mounted on a cart. They are initially at rest and their total mass is \(M\). A small toy car of mass \(m\) slides at speed \(v_0\) at the moment it enters the loop from the bottom. Assuming the car makes it entirely through the loop, what is the instantaneous speed of the cart when the car is at the topmost point?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q16" value="A"> A. \(\displaystyle \frac{m}{M+m}v_0 \left(2 - \frac{4gR}{v_0^2}\right)\)</label>
+                        <label class="option-label"><input type="radio" name="Q16" value="B"> B. \(\displaystyle \frac{m}{M+m}v_0 \left(0 - \frac{2gR}{v_0^2}\right)\)</label>
+                        <label class="option-label"><input type="radio" name="Q16" value="C"> C. \(\displaystyle \frac{m}{M+m}v_0 \left(2 - \frac{2gR}{v_0^2}\right)\)</label>
+                        <label class="option-label"><input type="radio" name="Q16" value="D"> D. \(\displaystyle \frac{m}{M}v_0 \left(0 - \frac{2gR}{v_0^2}\right)\)</label>
+                        <label class="option-label"><input type="radio" name="Q16" value="E"> E. \(\displaystyle \frac{2m}{M+m}v_0\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 17 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 17: Conservation in Binary Star System</div>
+                    <p>A system of two stars of masses \(m\) and \(M\) are orbiting each other in circles about their center of mass. The star of mass \(m\) transfers a small mass \(\delta m\) to the star of mass \(M\). Assuming the orbit remains circular afterward, identify all of the following properties of the system that are conserved in the interaction.<br><br>I — linear momentum<br>II — angular momentum<br>III — mechanical energy</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q17" value="A"> A. I only</label>
+                        <label class="option-label"><input type="radio" name="Q17" value="B"> B. II only</label>
+                        <label class="option-label"><input type="radio" name="Q17" value="C"> C. I & II</label>
+                        <label class="option-label"><input type="radio" name="Q17" value="D"> D. I & III</label>
+                        <label class="option-label"><input type="radio" name="Q17" value="E"> E. I, II, & III</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 18 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 18: Spring Platform with Changing Spring Constant</div>
+                    <p>A platform is mounted on a coil that behaves like an ideal spring. A small block is placed on the platform and allowed to equilibrate, having dropped a distance \(h\). Through some mechanism, the spring constant instantaneously increases by a factor of \(N>2\). What height, above the platform's original position, will the block subsequently rise?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q18" value="A"> A. \(\dfrac{1}{2}Nh\)</label>
+                        <label class="option-label"><input type="radio" name="Q18" value="B"> B. \(\dfrac{1}{2}(N-1)h\)</label>
+                        <label class="option-label"><input type="radio" name="Q18" value="C"> C. \(\dfrac{1}{2}(N-2)h\)</label>
+                        <label class="option-label"><input type="radio" name="Q18" value="D"> D. \(\left(\dfrac{1}{2}N-1\right)h\)</label>
+                        <label class="option-label"><input type="radio" name="Q18" value="E"> E. \((N-2)h\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 19 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 19: Non-Uniform Pendulum</div>
+                    <p>An ideal massless pendulum has mass \(1m\) on the end of the arm and mass \(2m\) in the middle of the arm. What is the period of the arm's motion?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q19" value="A"> A. \(T=2\pi\sqrt{\frac{3l}{4g}}\)</label>
+                        <label class="option-label"><input type="radio" name="Q19" value="B"> B. \(T=2\pi\sqrt{\frac{l}{g}}\)</label>
+                        <label class="option-label"><input type="radio" name="Q19" value="C"> C. \(T=2\pi\sqrt{\frac{2l}{3g}}\)</label>
+                        <label class="option-label"><input type="radio" name="Q19" value="D"> D. \(T=2\pi\sqrt{\frac{3l}{2g}}\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 20 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 20: Work Done by Typing</div>
+                    <p>For large dogs, a 60-minute play session burns about \(837\,\text{kJ}\). Assuming typing on a keyboard at a rate of \(3\) clicks per second does the same amount of work as lifting a \(0.4\,\text{kg}\) finger by \(0.5\,\text{m}\), how long would you need to work to become as tired as a dog after a 60-min play session?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q20" value="A"> A. 3.09 years</label>
+                        <label class="option-label"><input type="radio" name="Q20" value="B"> B. 5.30 weeks</label>
+                        <label class="option-label"><input type="radio" name="Q20" value="C"> C. 20,000 seconds</label>
+                        <label class="option-label"><input type="radio" name="Q20" value="D"> D. 39 hours</label>
+                        <label class="option-label"><input type="radio" name="Q20" value="E"> E. 5.78 days</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 21 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 21: Lift Force and Velocity</div>
+                    <p>One of the forces acting upon an airplane is the lift force, which depends on air density \(\rho\), the cross-sectional area of the wings \(A\), and the plane's velocity \(v\). What happens to the lift force if the plane's velocity is doubled?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q21" value="A"> A. The force remains constant</label>
+                        <label class="option-label"><input type="radio" name="Q21" value="B"> B. The force is doubled</label>
+                        <label class="option-label"><input type="radio" name="Q21" value="C"> C. The force is halved</label>
+                        <label class="option-label"><input type="radio" name="Q21" value="D"> D. The force is quadrupled</label>
+                        <label class="option-label"><input type="radio" name="Q21" value="E"> E. The force decreases</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 22 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 22: Coulomb Force</div>
+                    <p>A charge of \(2\,\text{C}\) undergoes a radial force of \(5\,\text{N}\) due to another charge of \(10\,\text{C}\). Let \(k\) be the Coulomb constant. What is the distance between the two charges?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q22" value="A"> A. \(\sqrt{k}\)</label>
+                        <label class="option-label"><input type="radio" name="Q22" value="B"> B. \(2\sqrt{k}\)</label>
+                        <label class="option-label"><input type="radio" name="Q22" value="C"> C. \(\dfrac{2}{k}\)</label>
+                        <label class="option-label"><input type="radio" name="Q22" value="D"> D. \(k^2\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 23 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 23: Escaping Earth Using Typhoon Winds</div>
+                    <p>Taiwan's typhoons have a maximum sustained wind speed of about \(28.1\,\text{m/s}\). What should Earth's mass be such that if a \(40\,\text{kg}\) person were launched straight upward with that speed, they would escape Earth's gravity? (Earth's radius is \(6371\,\text{km}\), and assume it does not change.)</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q23" value="A"> A. \(1.51 \times 10^{20}\,\text{kg}\)</label>
+                        <label class="option-label"><input type="radio" name="Q23" value="B"> B. \(2.13 \times 10^{23}\,\text{kg}\)</label>
+                        <label class="option-label"><input type="radio" name="Q23" value="C"> C. \(1.86 \times 10^{18}\,\text{kg}\)</label>
+                        <label class="option-label"><input type="radio" name="Q23" value="D"> D. \(3.55 \times 10^{21}\,\text{kg}\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 24 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 24: Magnus Force</div>
+                    <p>A long circular cylinder of radius \(R\) rotates with angular speed \(\omega\) about its axis and translational speed \(v\) perpendicular to the axis of rotation. The air has density \(\rho\). What is the magnitude of the lift force (Magnus force) <em>per unit length</em> acting on the cylinder?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q24" value="A"> A. \(F_L = 2\pi \rho v R^2 \omega\)</label>
+                        <label class="option-label"><input type="radio" name="Q24" value="B"> B. \(F_L = \pi \rho v^2 R^2 \omega\)</label>
+                        <label class="option-label"><input type="radio" name="Q24" value="C"> C. \(F_L = \rho v R \omega\)</label>
+                        <label class="option-label"><input type="radio" name="Q24" value="D"> D. \(F_L = \tfrac{1}{2}\rho v^2 R\)</label>
+                    </div>
+                </div>
+
+                <!-- PROBLEM 25 -->
+                <div class="problem-card">
+                    <div class="problem-title">Problem 25: Cherenkov Radiation in Water</div>
+                    <p>A photon collides with a free electron of mass \(9.1 \times 10^{-31}\,\text{kg}\) transferring all of its energy to the electron. Using an index of refraction for water of 1.333, what is the minimum initial frequency of the photon such that Cherenkov radiation will be generated by the electron moving through the water?</p>
+                    <div class="options-grid">
+                        <label class="option-label"><input type="radio" name="Q25" value="A"> A. \(2.5 \times 10^{19}\,\text{Hz}\)</label>
+                        <label class="option-label"><input type="radio" name="Q25" value="B"> B. \(3.0 \times 10^{19}\,\text{Hz}\)</label>
+                        <label class="option-label"><input type="radio" name="Q25" value="C"> C. \(3.5 \times 10^{19}\,\text{Hz}\)</label>
+                        <label class="option-label"><input type="radio" name="Q25" value="D"> D. \(4.0 \times 10^{19}\,\text{Hz}\)</label>
+                    </div>
+                </div>
+
+                <!-- Hidden Logs -->
+                <input type="hidden" name="Security_Log" id="logInput">
+                <input type="hidden" name="Tabs_Switched" id="switchCountInput">
+                
+                <button type="submit" class="submit-btn" onclick="submitTest(event)">Submit Contest</button>
+            </form>
+        </div>
+        
+        <div class="attribution">Platform created by Pranava Kumar</div>
+    </div>
+
+    <!-- CALCULATOR -->
+    <button id="calcToggle" onclick="toggleCalculator()" title="Open Calculator">
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M7,2H17A2,2 0 0,1 19,4V20A2,2 0 0,1 17,22H7A2,2 0 0,1 5,20V4A2,2 0 0,1 7,2M7,4V8H17V4H7M7,10V12H9V10H7M11,10V12H13V10H11M15,10V12H17V10H15M7,14V16H9V14H7M11,14V16H13V14H11M15,14V16H17V14H15M7,18V20H9V18H7M11,18V20H13V18H11M15,18V20H17V18H15Z"/></svg>
+    </button>
+    <div id="calculatorPopup">
+        <div class="calc-header" onmousedown="startDrag(event)">
+            <span>Desmos Calculator</span>
+            <span onclick="toggleCalculator()" style="cursor:pointer; font-weight:bold;">✕</span>
+        </div>
+        <div id="calculator"></div>
+    </div>
+
+    <!-- SECURITY CONSOLE -->
+    <div id="securityConsole">
+        <div class="console-header" onclick="document.getElementById('securityConsole').style.display='none'">
+            <span>🔒 Proctor Log</span>
+            <span>✕</span>
+        </div>
+        <div id="consoleOutput"></div>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const CONTEST_DURATION_MINUTES = 75;
+        let timeLeft = CONTEST_DURATION_MINUTES * 60;
+        let testActive = false;
+        let logData = [];
+        let switchCount = 0;
+        let timerInterval;
+
+        // --- 2. STARTUP LOGIC ---
+        function checkPassword() {
+            // Default password logic - Change "NCPHO2026" if desired
+            const pass = document.getElementById('passwordInput').value;
+            if(pass === "NCPHO2026") {
+                startContest();
+            } else {
+                document.getElementById('errorMsg').style.display = 'block';
+            }
+        }
+
+        function startContest() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('testUI').style.display = 'block';
+            document.getElementById('calcToggle').style.display = 'flex';
+            document.getElementById('securityConsole').style.display = 'flex';
+            
+            testActive = true;
+            logEvent("CONTEST STARTED");
+            
+            // Start Timer
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // Init Calculator
+            var elt = document.getElementById('calculator');
+            var calculator = Desmos.GraphingCalculator(elt);
+        }
+
+        // --- 3. TIMER LOGIC ---
+        function updateTimer() {
+            if(timeLeft <= 0) {
+                clearInterval(timerInterval);
+                logEvent("TIME EXPIRED - AUTO SUBMIT");
+                document.getElementById('quizForm').submit();
+                return;
+            }
+            
+            timeLeft--;
+            let m = Math.floor(timeLeft / 60);
+            let s = timeLeft % 60;
+            let display = `${m}:${s < 10 ? '0' : ''}${s}`;
+            
+            const timerBox = document.getElementById('timerDisplay');
+            timerBox.innerText = display;
+            
+            if(timeLeft < 300) { // Red warning last 5 mins
+                timerBox.classList.add('timer-warning');
+            }
+        }
+
+        // --- 4. ANTI-CHEAT LOGIC ---
+        function logEvent(msg) {
+            if(!testActive) return;
+            const time = new Date().toLocaleTimeString();
+            const entry = `[${time}] ${msg}`;
+            logData.push(entry);
+            
+            const consoleDiv = document.getElementById('consoleOutput');
+            const row = document.createElement('div');
+            row.innerText = entry;
+            if(msg.includes("LEFT") || msg.includes("BLUR")) row.classList.add('log-warn');
+            consoleDiv.appendChild(row);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        document.addEventListener("visibilitychange", function() {
+            if (document.visibilityState === 'hidden') {
+                if (testActive) {
+                    switchCount++;
+                    logEvent("⚠️ TAB LEFT / HIDDEN");
+                    document.getElementById('focusBar').classList.add('cheat-detected');
+                    document.title = "⚠️ COME BACK!";
+                }
+            } else {
+                if (testActive) {
+                    logEvent("TAB RESTORED");
+                    document.getElementById('focusBar').classList.remove('cheat-detected');
+                    document.title = "NCPHO Contest";
+                }
+            }
+        });
+
+        window.addEventListener("blur", function() {
+            if (testActive && document.visibilityState !== 'hidden') {
+                switchCount++;
+                logEvent("⚠️ WINDOW BLUR (LOST FOCUS)");
+            }
+        });
+
+        window.addEventListener("beforeunload", function (e) {
+            if(testActive) {
+                e.preventDefault();
+                e.returnValue = ''; // Standard warning
+            }
+        });
+
+        // --- 5. SUBMISSION ---
+        function submitTest(e) {
+            // Populate hidden fields
+            document.getElementById('logInput').value = logData.join("\n");
+            document.getElementById('switchCountInput').value = switchCount;
+            
+            // Allow form submission to proceed natively to Formspree
+            // We do NOT preventDefault here unless validation fails
+            
+            testActive = false; // Stop logging
+            clearInterval(timerInterval);
+        }
+
+        // --- 6. CALCULATOR UI ---
+        function toggleCalculator() {
+            const popup = document.getElementById('calculatorPopup');
+            popup.style.display = (popup.style.display === 'block') ? 'none' : 'block';
+        }
+
+        // Simple Drag Logic for Calculator
+        let dragObj = null;
+        let offsetX = 0, offsetY = 0;
+
+        function startDrag(e) {
+            dragObj = document.getElementById('calculatorPopup');
+            offsetX = e.clientX - dragObj.offsetLeft;
+            offsetY = e.clientY - dragObj.offsetTop;
+            document.onmousemove = doDrag;
+            document.onmouseup = stopDrag;
+        }
+
+        function doDrag(e) {
+            dragObj.style.left = (e.clientX - offsetX) + 'px';
+            dragObj.style.top = (e.clientY - offsetY) + 'px';
+        }
+
+        function stopDrag() {
+            document.onmousemove = null;
+            document.onmouseup = null;
+        }
+    </script>
+</body>
+</html>
