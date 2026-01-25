@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NCPHO Leaderboard</title>
+    <style>
+        :root {
+            --primary: #0f3460;
+            --accent: #e94560;
+            --light: #f5f5f5;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0; padding: 0;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 { color: var(--primary); text-align: center; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #777; margin-bottom: 30px; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { background: var(--primary); color: white; padding: 15px; text-align: left; }
+        td { padding: 15px; border-bottom: 1px solid #ddd; }
+        tr:nth-child(1) td { background: #fff9c4; font-weight: bold; border-left: 5px solid gold; }
+        
+        .score-badge {
+            background: var(--accent); color: white;
+            padding: 5px 12px; border-radius: 15px; font-weight: bold;
+        }
+        .back-btn {
+            display: inline-block; margin-bottom: 20px;
+            text-decoration: none; color: var(--primary); font-weight: bold;
+        }
+        .loading { text-align: center; padding: 20px; font-style: italic; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="index.html" class="back-btn">← Back to Contest</a>
+    <h1>NCPHO 2026 Leaderboard</h1>
+    <div class="subtitle">Live Results • Top Scores</div>
+
+    <div id="loader" class="loading">Loading scores...</div>
+
+    <table id="lbTable" style="display:none;">
+        <thead>
+            <tr>
+                <th width="15%">Rank</th>
+                <th width="60%">Name</th>
+                <th width="25%">Score (/25)</th>
+            </tr>
+        </thead>
+        <tbody id="lbBody"></tbody>
+    </table>
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbyLmC5KqzYNU6XdWvmUdiQuy2mBujHOHxyU3En9FUrXoubgJPtUq9bMYDDlHXu-x2bZ/exec";
+
+    async function loadLeaderboard() {
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            
+            // Sort by score (descending)
+            data.sort((a, b) => b.score - a.score);
+
+            const tbody = document.getElementById('lbBody');
+            tbody.innerHTML = "";
+
+            data.forEach((student, index) => {
+                const row = document.createElement('tr');
+                // Rank logic
+                let rank = index + 1;
+                let medal = "";
+                if(rank === 1) medal = " 🥇";
+                if(rank === 2) medal = " 🥈";
+                if(rank === 3) medal = " 🥉";
+
+                row.innerHTML = `
+                    <td>#${rank}</td>
+                    <td>${escapeHtml(student.name)} ${medal}</td>
+                    <td><span class="score-badge">${student.score}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('lbTable').style.display = 'table';
+
+        } catch (error) {
+            document.getElementById('loader').innerText = "Error loading scores. Please try again later.";
+            console.error(error);
+        }
+    }
+
+    // Basic XSS protection
+    function escapeHtml(text) {
+        if (!text) return "Anonymous";
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    loadLeaderboard();
+</script>
+
+</body>
+</html>
