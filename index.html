@@ -252,6 +252,13 @@
             <input type="password" id="passwordInput" placeholder="Password...">
             <button class="submit-btn" onclick="checkPassword()">BEGIN CONTEST</button>
             <p id="errorMsg" style="color:red; display:none; margin-top:10px;">Incorrect Password</p>
+            
+            <br><br>
+            <a href="lb.html" style="text-decoration:none;">
+                <button style="background:#555; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer;">
+                    🏆 View Leaderboard
+                </button>
+            </a>
         </div>
         
         <div class="attribution">Platform created by Pranava Kumar</div>
@@ -269,7 +276,7 @@
 
         <div class="container">
             <!-- Formspree Endpoint -->
-            <form action="https://formspree.io/f/myzopqgk" method="POST" id="quizForm">
+            <form id="quizForm" onsubmit="submitTest(event)">
                 
                 <div class="problem-card" style="border-left-color: #333;">
                     <h3>Student Information</h3>
@@ -646,7 +653,6 @@
 
         // --- 2. STARTUP LOGIC ---
         function checkPassword() {
-            // Default password logic - Change "NCPHO2026" if desired
             const pass = document.getElementById('passwordInput').value;
             if(pass === "NCPHO2026") {
                 startContest();
@@ -737,11 +743,47 @@
         });
 
         // --- 5. SUBMISSION ---
+        // --- 5. SUBMISSION ---
+        // PASTE YOUR GOOGLE SCRIPT WEB APP URL HERE
+        const SCRIPT_URL = "YOUR_GOOGLE_SCRIPT_URL_HERE"; 
+        
         function submitTest(e) {
+            if(e) e.preventDefault(); // Prevent default form refresh
+        
+            // Prepare Data
             document.getElementById('logInput').value = logData.join("\n");
             document.getElementById('switchCountInput').value = switchCount;
             testActive = false; 
             clearInterval(timerInterval);
+        
+            // Get Form Data
+            const form = document.getElementById('quizForm');
+            const formData = new FormData(form);
+            
+            // Change button text
+            const btn = document.querySelector('.submit-btn');
+            btn.innerText = "Grading...";
+            btn.disabled = true;
+        
+            // Send to Google Script
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.result === "success") {
+                    // Success Alert and Redirect
+                    alert("Contest Submitted! Your Score: " + data.score + "/25");
+                    window.location.href = "lb.html";
+                } else {
+                    alert("Submission error. Please take a screenshot and email the organizer.");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Network error. Please save your answers manually.");
+            });
         }
 
         // --- 6. POPUP UI ---
