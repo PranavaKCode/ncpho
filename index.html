@@ -642,185 +642,190 @@
         </div>
     </div>
 
-    <script>
-        // --- 1. CONFIGURATION ---
-        const CONTEST_DURATION_MINUTES = 75;
-        let timeLeft = CONTEST_DURATION_MINUTES * 60;
-        let testActive = false;
-        let logData = [];
-        let switchCount = 0;
-        let timerInterval;
+   <script>
+    // --- 1. CONFIGURATION ---
+    const CONTEST_DURATION_MINUTES = 75;
+    // PASTE YOUR GOOGLE SCRIPT WEB APP URL HERE
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyLmC5KqzYNU6XdWvmUdiQuy2mBujHOHxyU3En9FUrXoubgJPtUq9bMYDDlHXu-x2bZ/exec"; 
+    
+    let timeLeft = CONTEST_DURATION_MINUTES * 60;
+    let testActive = false;
+    let logData = [];
+    let switchCount = 0;
+    let timerInterval;
 
-        // --- 2. STARTUP LOGIC ---
-        function checkPassword() {
-            const pass = document.getElementById('passwordInput').value;
-            if(pass === "NCPHO2026") {
-                startContest();
-            } else {
-                document.getElementById('errorMsg').style.display = 'block';
-            }
+    // --- 2. STARTUP LOGIC ---
+    function checkPassword() {
+        const pass = document.getElementById('passwordInput').value;
+        if(pass === "NCPHO2026") {
+            startContest();
+        } else {
+            document.getElementById('errorMsg').style.display = 'block';
         }
+    }
 
-        function startContest() {
-            document.getElementById('welcomeScreen').style.display = 'none';
-            document.getElementById('testUI').style.display = 'block';
-            document.getElementById('calcToggle').style.display = 'flex';
-            
-            testActive = true;
-            logEvent("CONTEST STARTED");
-            
-            // Start Timer
-            timerInterval = setInterval(updateTimer, 1000);
-            
-            // Init Calculator
-            var elt = document.getElementById('calculator');
-            var calculator = Desmos.GraphingCalculator(elt);
-        }
-
-        // --- 3. TIMER LOGIC ---
-        function updateTimer() {
-            if(timeLeft <= 0) {
-                clearInterval(timerInterval);
-                logEvent("TIME EXPIRED - AUTO SUBMIT");
-                document.getElementById('quizForm').submit();
-                return;
-            }
-            
-            timeLeft--;
-            let m = Math.floor(timeLeft / 60);
-            let s = timeLeft % 60;
-            let display = `${m}:${s < 10 ? '0' : ''}${s}`;
-            
-            const timerBox = document.getElementById('timerDisplay');
-            timerBox.innerText = display;
-            
-            if(timeLeft < 300) { // Red warning last 5 mins
-                timerBox.classList.add('timer-warning');
-            }
-        }
-
-        // --- 4. ANTI-CHEAT LOGIC (Hidden Logging) ---
-        function logEvent(msg) {
-            if(!testActive) return;
-            const time = new Date().toLocaleTimeString();
-            const entry = `[${time}] ${msg}`;
-            logData.push(entry);
-        }
-
-        document.addEventListener("visibilitychange", function() {
-            if (document.visibilityState === 'hidden') {
-                if (testActive) {
-                    switchCount++;
-                    logEvent("⚠️ TAB LEFT / HIDDEN");
-                    document.title = "⚠️ COME BACK!";
-                }
-            } else {
-                if (testActive) {
-                    logEvent("TAB RESTORED");
-                    document.title = "NCPHO Contest";
-                }
-            }
-        });
-
-        window.addEventListener("blur", function() {
-            // Check if the active element is an iframe (user clicked Reference or Calc)
-            // If so, do NOT log this as a violation.
-            if (document.activeElement && document.activeElement.tagName === "IFRAME") {
-                return;
-            }
-
-            if (testActive && document.visibilityState !== 'hidden') {
-                switchCount++;
-                logEvent("⚠️ WINDOW BLUR (LOST FOCUS)");
-            }
-        });
-
-        window.addEventListener("beforeunload", function (e) {
-            if(testActive) {
-                e.preventDefault();
-                e.returnValue = ''; // Standard warning
-            }
-        });
-
-        // --- 5. SUBMISSION ---
-        // --- 5. SUBMISSION ---
-        // PASTE YOUR GOOGLE SCRIPT WEB APP URL HERE
-        const SCRIPT_URL = "YOUR_GOOGLE_SCRIPT_URL_HERE"; 
+    function startContest() {
+        document.getElementById('welcomeScreen').style.display = 'none';
+        document.getElementById('testUI').style.display = 'block';
+        document.getElementById('calcToggle').style.display = 'flex';
         
-        function submitTest(e) {
-            if(e) e.preventDefault(); // Prevent default form refresh
+        testActive = true;
+        logEvent("CONTEST STARTED");
         
-            // Prepare Data
-            document.getElementById('logInput').value = logData.join("\n");
-            document.getElementById('switchCountInput').value = switchCount;
-            testActive = false; 
+        // Start Timer
+        timerInterval = setInterval(updateTimer, 1000);
+        
+        // Init Calculator
+        var elt = document.getElementById('calculator');
+        var calculator = Desmos.GraphingCalculator(elt);
+    }
+
+    // --- 3. TIMER LOGIC ---
+    function updateTimer() {
+        if(timeLeft <= 0) {
             clearInterval(timerInterval);
+            logEvent("TIME EXPIRED - AUTO SUBMIT");
+            // Trigger the manual submit function instead of form.submit()
+            submitTest(new Event('submit'));
+            return;
+        }
         
-            // Get Form Data
-            const form = document.getElementById('quizForm');
-            const formData = new FormData(form);
-            
-            // Change button text
-            const btn = document.querySelector('.submit-btn');
-            btn.innerText = "Grading...";
-            btn.disabled = true;
+        timeLeft--;
+        let m = Math.floor(timeLeft / 60);
+        let s = timeLeft % 60;
+        let display = `${m}:${s < 10 ? '0' : ''}${s}`;
         
-            // Send to Google Script
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if(data.result === "success") {
-                    // Success Alert and Redirect
-                    alert("Contest Submitted! Your Score: " + data.score + "/25");
-                    window.location.href = "lb.html";
-                } else {
-                    alert("Submission error. Please take a screenshot and email the organizer.");
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert("Network error. Please save your answers manually.");
-            });
+        const timerBox = document.getElementById('timerDisplay');
+        timerBox.innerText = display;
+        
+        if(timeLeft < 300) { // Red warning last 5 mins
+            timerBox.classList.add('timer-warning');
         }
+    }
 
-        // --- 6. POPUP UI ---
-        function toggleCalculator() {
-            const popup = document.getElementById('calculatorPopup');
-            popup.style.display = (popup.style.display === 'block') ? 'none' : 'block';
-        }
+    // --- 4. ANTI-CHEAT LOGIC ---
+    function logEvent(msg) {
+        if(!testActive) return;
+        const time = new Date().toLocaleTimeString();
+        const entry = `[${time}] ${msg}`;
+        logData.push(entry);
+    }
 
-        function toggleReference() {
-            const popup = document.getElementById('referencePopup');
-            popup.style.display = (popup.style.display === 'block') ? 'none' : 'block';
-        }
-
-        // Simple Drag Logic
-        let dragObj = null;
-        let offsetX = 0, offsetY = 0;
-
-        function startDrag(e, id) {
-            dragObj = document.getElementById(id);
-            offsetX = e.clientX - dragObj.offsetLeft;
-            offsetY = e.clientY - dragObj.offsetTop;
-            document.onmousemove = doDrag;
-            document.onmouseup = stopDrag;
-        }
-
-        function doDrag(e) {
-            if(dragObj) {
-                dragObj.style.left = (e.clientX - offsetX) + 'px';
-                dragObj.style.top = (e.clientY - offsetY) + 'px';
+    document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === 'hidden') {
+            if (testActive) {
+                switchCount++;
+                logEvent("⚠️ TAB LEFT / HIDDEN");
+                document.title = "⚠️ COME BACK!";
+            }
+        } else {
+            if (testActive) {
+                logEvent("TAB RESTORED");
+                document.title = "NCPHO Contest";
             }
         }
+    });
 
-        function stopDrag() {
-            dragObj = null;
-            document.onmousemove = null;
-            document.onmouseup = null;
+    window.addEventListener("blur", function() {
+        if (document.activeElement && document.activeElement.tagName === "IFRAME") {
+            return;
         }
-    </script>
+        if (testActive && document.visibilityState !== 'hidden') {
+            switchCount++;
+            logEvent("⚠️ WINDOW BLUR (LOST FOCUS)");
+        }
+    });
+
+    window.addEventListener("beforeunload", function (e) {
+        if(testActive) {
+            e.preventDefault();
+            e.returnValue = ''; 
+        }
+    });
+
+    // --- 5. SUBMISSION (THE FIX IS HERE) ---
+    function submitTest(e) {
+        if(e) e.preventDefault(); 
+    
+        // Prepare Data
+        document.getElementById('logInput').value = logData.join("\n");
+        document.getElementById('switchCountInput').value = switchCount;
+        testActive = false; 
+        clearInterval(timerInterval);
+    
+        const form = document.getElementById('quizForm');
+        
+        // --- FIX: CONVERT FORMDATA TO URLSearchParams ---
+        // This prevents the CORS preflight error
+        const formData = new FormData(form);
+        const data = new URLSearchParams();
+        for (const pair of formData) {
+            data.append(pair[0], pair[1]);
+        }
+
+        // Change button text
+        const btn = document.querySelector('.submit-btn');
+        btn.innerText = "Grading...";
+        btn.disabled = true;
+    
+        // Send to Google Script
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: data // Sending as URL encoded string
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.result === "success") {
+                alert("Contest Submitted! Your Score: " + data.score + "/25");
+                window.location.href = "lb.html";
+            } else {
+                alert("Submission error. Please take a screenshot and email the organizer.");
+                console.error(data);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Network error. Please try clicking submit again. If it persists, take a screenshot.");
+            btn.disabled = false;
+            btn.innerText = "Retry Submit";
+        });
+    }
+
+    // --- 6. POPUP UI ---
+    function toggleCalculator() {
+        const popup = document.getElementById('calculatorPopup');
+        popup.style.display = (popup.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function toggleReference() {
+        const popup = document.getElementById('referencePopup');
+        popup.style.display = (popup.style.display === 'block') ? 'none' : 'block';
+    }
+
+    // Drag Logic
+    let dragObj = null;
+    let offsetX = 0, offsetY = 0;
+
+    function startDrag(e, id) {
+        dragObj = document.getElementById(id);
+        offsetX = e.clientX - dragObj.offsetLeft;
+        offsetY = e.clientY - dragObj.offsetTop;
+        document.onmousemove = doDrag;
+        document.onmouseup = stopDrag;
+    }
+
+    function doDrag(e) {
+        if(dragObj) {
+            dragObj.style.left = (e.clientX - offsetX) + 'px';
+            dragObj.style.top = (e.clientY - offsetY) + 'px';
+        }
+    }
+
+    function stopDrag() {
+        dragObj = null;
+        document.onmousemove = null;
+        document.onmouseup = null;
+    }
+   </script>
 </body>
 </html>
